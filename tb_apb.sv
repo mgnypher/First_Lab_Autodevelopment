@@ -31,39 +31,43 @@ apb_slave DUT
 .prdata(prdata)
 );
 
-task apb_write(input [31:0] addr, [31:0] data);
-wait ((penable==0) && (pready == 0));
-@(posedge pclk);
-psel <= 1'b1;
-paddr[31:0] <= addr[31:0];
-pwdata[31:0] <= data[31:0];
-pwrite <= 1'b1;
-@(posedge pclk);
-penable <= 1'b1;
-@(posedge pclk);
-wait (pready == 1'b1);
-@(posedge pclk);
-psel <= 1'b0;
-penable <= 1'b0;
-pwrite <= 1'b0;
-@(posedge pclk);
+task apb_write(input [31:0] addr, input [31:0] data);
+    begin
+        wait ((penable==0) && (pready == 0));
+        @(posedge pclk);
+        psel <= 1'b1;
+        paddr[31:0] <= addr[31:0];
+        pwdata[31:0] <= data[31:0];
+        pwrite <= 1'b1;
+        @(posedge pclk);
+        penable <= 1'b1;
+        @(posedge pclk);
+        wait (pready == 1'b1);
+        @(posedge pclk);
+        psel <= 1'b0;
+        penable <= 1'b0;
+        pwrite <= 1'b0;
+        @(posedge pclk);
+    end
 endtask
 
-task apb_read(input [31:0] addr, output logic [31:0] data);
-wait ((penable==0) && (pready == 0));
-@(posedge pclk);
-psel <= 1'b1;
-pwrite <= 1'b0;
-paddr[31:0] <= addr[31:0];
-@(posedge pclk);
-penable <= 1'b1;
-@(posedge pclk);
-wait (pready == 1'b1);
-@(posedge pclk);
-data[31:0] <= prdata[31:0];
-psel <= 1'b0;
-penable <= 1'b0;
-@(posedge pclk);
+task apb_read(input [31:0] addr, output [31:0] data);
+    begin
+        wait ((penable==0) && (pready == 0));
+        @(posedge pclk);
+        psel <= 1'b1;
+        pwrite <= 1'b0;
+        paddr[31:0] <= addr[31:0];
+        @(posedge pclk);
+        penable <= 1'b1;
+        @(posedge pclk);
+        wait (pready == 1'b1);
+        @(posedge pclk);
+        data[31:0] <= prdata[31:0];
+        psel <= 1'b0;
+        penable <= 1'b0;
+        @(posedge pclk);
+    end
 endtask
 
 always
@@ -95,7 +99,7 @@ begin
     apb_write(p_device_offset + 8, 32'h4D69_7368);
 
     // 0xC: "Vlad" -> 0x566C6164
-    apb_write(p_device_offset + 0xC, 32'h566C_6164);
+    apb_write(p_device_offset + 32'hC, 32'h566C_6164);
 
     // Чтение и проверка
     apb_read(p_device_offset + 0, data_from_device);
@@ -107,7 +111,7 @@ begin
     apb_read(p_device_offset + 8, data_from_device);
     $display("READ 0x8: 0x%h (expect 0x4D697368 = 'Mish')", data_from_device);
 
-    apb_read(p_device_offset + 0xC, data_from_device);
+    apb_read(p_device_offset + 32'hC, data_from_device);
     $display("READ 0xC: 0x%h (expect 0x566C6164 = 'Vlad')", data_from_device);
 
     repeat (10) @(posedge pclk);
